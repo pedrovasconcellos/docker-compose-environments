@@ -1,0 +1,108 @@
+version: '2'
+
+services:
+  zookeeper:
+    image: bitnami/zookeeper:latest
+    networks: 
+      - net
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      ALLOW_ANONYMOUS_LOGIN: "yes"
+
+  kafka:
+    image: bitnami/kafka:latest
+    networks: 
+      - net
+    depends_on:
+      - zookeeper
+    ports:
+      - 9092:9092
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT://:29092,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      ALLOW_PLAINTEXT_LISTENER: "yes" 
+
+  akhq:
+    container_name: akhq
+    depends_on:
+      - kafka
+    networks:
+      - net
+    ports:
+      - '9098:8080'
+    links:
+      - kafka
+    environment:
+      AKHQ_CONFIGURATION: |
+        akhq:
+          connections:
+            dev:
+              properties:
+                bootstrap.servers: "kafka:29092"
+    image: tchiotludo/akhq
+
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    environment:
+      -  'MONGODB_USER=mongodb'
+      -  'MONGODB_PASS=mongodb'
+    volumes:
+      - 'mongodb-data:/data/db'
+    ports:
+      - '27017:27017'
+    command: mongod
+
+  rabbitmq:
+    image: 'rabbitmq:3-management'
+    container_name: rabbitmq
+    hostname: 'rabbitmq'
+    environment:
+      RABBITMQ_ERLANG_COOKIE: 'PQEWRWROWE'
+      RABBITMQ_DEFAULT_USER: 'rabbitmq'
+      RABBITMQ_DEFAULT_PASS: 'rabbitmq'
+      RABBITMQ_DEFAULT_VHOST: '/'
+    ports:
+      - '15672:15672'
+      - '5672:5672'
+    labels:
+      NAME: 'rabbitmq'
+
+  control-center:
+      image: confluentinc/cp-enterprise-control-center:5.3.8
+      hostname: control-center
+      container_name: control-center
+      depends_on:
+        - zookeeper
+        - kafka
+      ports:
+        - "9021:9021"
+      networks:
+        - net
+      environment:
+        CONTROL_CENTER_BOOTSTRAP_SERVERS: 'kafka:29092'
+        CONTROL_CENTER_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+        CONTROL_CENTER_CONNECT_CLUSTER: 'connect:8083'
+        CONTROL_CENTER_KSQL_URL: "http://ksql-server:8088"
+        CONTROL_CENTER_KSQL_ADVERTISED_URL: "http://localhost:8088"
+        CONTROL_CENTER_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
+        CONTROL_CENTER_REPLICATION_FACTOR: 1
+        CONTROL_CENTER_INTERNAL_TOPICS_PARTITIONS: 1
+        CONTROL_CENTER_MONITORING_INTERCEPTOR_TOPIC_PARTITIONS: 1
+        CONFLUENT_METRICS_TOPIC_REPLICATION: 1
+        PORT: 9021
+
+volumes:
+  mongodb-data: {}
+
+
+networks: 
+  net:
+    driver: bridge
