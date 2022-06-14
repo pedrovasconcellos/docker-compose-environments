@@ -53,5 +53,15 @@ kafka-topics.sh --create --bootstrap-server localhost:29092 --partitions 3 --rep
 
 kafka-topics.sh --describe --bootstrap-server localhost:29092 --partitions 3 --replication-factor 3 --topic test-3-3
 ```
-##### Example
+##### Example [Describe Topic]
 ![Describe Topic](./images/screen-shot-create-topic-in-kafka-cluster.png)
+
+
+### Kafka Cluster examples (kafka-cluster/docker-compose.yml)
+
+#### Drop a kafka instance from the cluster (kafka-cluster/docker-compose.yml)
+```sh
+docker-compose stop kafka3
+```
+##### Example [Drop a kafka instance from the cluster]
+![Drop a kafka instance from the cluster](./images/screen-shot-drop-instance-in-kafka-cluster.png)
