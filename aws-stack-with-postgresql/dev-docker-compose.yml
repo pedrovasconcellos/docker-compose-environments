@@ -1,0 +1,42 @@
+version: "3.8"
+services:
+  postgres:
+    image: postgres:15.3-alpine
+    container_name: "postgres-image"
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: Vasc7
+      POSTGRES_USER: main
+    ports:
+      - 5432:5432
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+
+  localstack:
+    container_name: "localstack-image"
+    image: localstack/localstack
+    network_mode: bridge
+    ports:
+      - "4566:4566"
+      - "4571:4571"
+      - "8082:8082"
+    environment:
+      - DEBUG=1
+      - PORT_WEB_UI=8082
+      - LAMBDA_EXECUTOR=local
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - HOST_TMP_FOLDER=${TMPDIR}
+      - START_WEB=1
+    volumes:
+      - "${TMPDIR:-/tmp/localstack}:/tmp/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+
+networks:
+  default:
+    name: local-network
+    external: true
+#docker network create local-network
+#docker-compose -f dev-docker-compose.yml up
+#S3: http://localhost:4566
+#Lambda: http://localhost:4571
+#ElasticMQ (Simulação do SQS): http://localhost:8082
